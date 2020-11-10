@@ -6,20 +6,6 @@ import java.util.List;
 import reversi.Celda;
 import reversi.JugadorReversi;
 
-class Logger {
-    public static void log(String msg) {
-        System.out.println(msg);
-    }
-
-    public static void matrix(int[][] matrix) {
-        for (int i = 0; i < matrix.length; i++) {
-            for (int j = 0; j < matrix[i].length; j++) {
-                System.out.print(matrix[i][j] + " ");
-            }
-            System.out.println();
-        }
-    }
-}
 
 public class JugadorReversiImpl implements JugadorReversi {
 
@@ -45,7 +31,6 @@ public class JugadorReversiImpl implements JugadorReversi {
 
         while (semBusqueda && i < posiblesJugadas.size() - 1) {
             int[][] tableroHijo = MarcarTablero(tablero, posiblesJugadas.get(i), JUGADOR, 0);
-            Logger.matrix(tableroHijo);
             maxPuntaje = valorMinMax(tableroHijo, jugador, control - 1);
             if (maxPuntaje > 0) {
                 semBusqueda = false;
@@ -53,7 +38,6 @@ public class JugadorReversiImpl implements JugadorReversi {
             }
             i++;
         }
-        Logger.log("NODOS EXPLORADOS: " + nodosExplorados);
         return mejor_mov;
     }
 
@@ -61,15 +45,14 @@ public class JugadorReversiImpl implements JugadorReversi {
         nodosExplorados++;
         int valor = 0;
         int proxJugador = 0;
-        if (TableroCompleto(tablero) || !HayMovimientos(tablero) || control < 0) {
-            return EvaluarTablero(tablero, jugador);
+        if (TableroCompleto(tablero) || !HayMovimientos(tablero) || control < 0) { // cte o n*n
+            return EvaluarTablero(tablero);// cte o n*n
         } else {
-            List<Celda> hijos = BuscarPosiblesJugadas(tablero, jugador);
-            Logger.log("posibles jugadas " + hijos.size());
+            List<Celda> hijos = BuscarPosiblesJugadas(tablero, jugador); // cte o n*n
             if (hijos.size() == 0) {
-                System.out.println("NO TENGO MOVS: " + jugador + " DEBE JUGAR: " + -1 * jugador);
-                return valorMinMax(tablero, jugador * -1, control);
-                //TODO: FUNCION PARA PASAR DE TURNO QUE EJECUTA???
+                return valorMinMax(tablero, jugador * -1, control); // recursivo con resta
+                // a^(n/b)
+                // hijos ^ (hijos)
 
             } else {
                 if (jugador == JUGADOR) {
@@ -84,9 +67,7 @@ public class JugadorReversiImpl implements JugadorReversi {
             int i = 0;
             boolean podar = false;
             while (!podar && i < hijos.size() - 1 && control > 0) {
-                System.out.println("JUEGA JUGADOR: " + jugador);
                 int[][] tableroHijo = MarcarTablero(tablero, hijos.get(i), jugador, 0);
-                Logger.matrix(tableroHijo);
                 int resu = valorMinMax(tableroHijo, proxJugador, control - 1);
                 if (jugador == 1) {
                     valor = Math.max(valor, resu);
@@ -95,7 +76,6 @@ public class JugadorReversiImpl implements JugadorReversi {
                 }
 
                 if ((jugador == 1 && valor == 1) || (jugador == -1 && valor == -1)) {
-                    Logger.log("podo4");
                     podar = true;
                 }
                 i++;
@@ -104,33 +84,34 @@ public class JugadorReversiImpl implements JugadorReversi {
         }
     }
 
-
+    // cte o n*n
     private boolean TableroCompleto(int[][] tablero) {
         boolean completo = true;
         for (int fila = 0; fila <= 7; fila++) {
             for (int columna = 0; columna <= 7; columna++) {
                 if (tablero[fila][columna] == 0) {
                     completo = false;
+                    break;
                 }
             }
         }
         return completo;
     }
 
+    // cte o n*n
     private boolean HayMovimientos(int[][] tablero) {
         boolean hayMovimientos = true;
 
         List<Celda> movimientosJugador = BuscarPosiblesJugadas(tablero, 1);
         List<Celda> movimientosOponente = BuscarPosiblesJugadas(tablero, -1);
-        Logger.log("movimientos jugador " + movimientosJugador.size());
-        Logger.log("movimientos openente " + movimientosOponente.size());
         if (movimientosJugador.size() == 0 && movimientosOponente.size() == 0)
             hayMovimientos = false;
 
         return hayMovimientos;
     }
 
-    private int EvaluarTablero(int[][] tablero, int jugador) {
+    // constante, pero n filas * n columnas
+    private int EvaluarTablero(int[][] tablero) {
         int fichasJugador = 0;
         int fichasOponente = 0;
 
@@ -149,6 +130,8 @@ public class JugadorReversiImpl implements JugadorReversi {
             return -1;
     }
 
+
+    // 64 cte o n filas * n columnas por la copia del tablero
     private int[][] MarcarTablero(int[][] tableroAnterior, Celda proxPos, int jugador, int desmarcar) {
         int fichas = 0;
         int fila = proxPos.getFila();
@@ -256,6 +239,7 @@ public class JugadorReversiImpl implements JugadorReversi {
         System.out.println();
     }
 
+    // constante, 64 siempre, o sea, n filas * n columnas
     private List<Celda> BuscarPosiblesJugadas(int[][] tablero, int jugador) {
         List<Celda> posiblesJugadas = new ArrayList<Celda>();
         for (int fila = 0; fila <= 7; fila++) {
@@ -284,7 +268,7 @@ public class JugadorReversiImpl implements JugadorReversi {
      * @param tablero
      * @param jugador
      * @param fila
-     * @param columna
+     * @param columna Constante
      * @return
      */
     private int BuscarArriba(int[][] tablero, int jugador, int fila, int columna) {
@@ -380,7 +364,6 @@ public class JugadorReversiImpl implements JugadorReversi {
      * @return
      */
     private int BuscarDiagInfDer(int[][] tablero, int jugador, int fila, int columna) {
-        // System.out.println("BUSCAR DIAG INF DER: " + fila + columna);
         int posicionFinalFila = 0;
         int posicionFinalColumna = 0;
         int fichasContrarias = 0;
@@ -414,7 +397,6 @@ public class JugadorReversiImpl implements JugadorReversi {
      * @return
      */
     private int BuscarAbajo(int[][] tablero, int jugador, int fila, int columna) {
-        // System.out.println("BUSCAR ABAJO: " + fila + columna);
         int posicionFinalFila = 0;
         int fichasContrarias = 0;
         boolean semBusqueda = true;
@@ -443,7 +425,6 @@ public class JugadorReversiImpl implements JugadorReversi {
      * @return
      */
     private int BuscarDiagInfIzq(int[][] tablero, int jugador, int fila, int columna) {
-        // System.out.println("BUSCAR DIAG INF IZQ: " + fila + columna);
         int posicionFinalFila = 0;
         int posicionFinalColumna = 0;
         int fichasContrarias = 0;
@@ -477,7 +458,6 @@ public class JugadorReversiImpl implements JugadorReversi {
      * @return
      */
     private int BuscarIzquierda(int[][] tablero, int jugador, int fila, int columna) {
-        // System.out.println("BUSCAR IZQUIERDA: " + fila + columna);
         int posicionFinalColumna = 0;
         int fichasContrarias = 0;
         boolean semBusqueda = true;
@@ -506,7 +486,6 @@ public class JugadorReversiImpl implements JugadorReversi {
      * @return
      */
     private int BuscarDiagSupIzq(int[][] tablero, int jugador, int fila, int columna) {
-        // System.out.println("BUSCAR DIAG SUP IZQ: " + fila + columna);
         int posicionFinalFila = 0;
         int posicionFinalColumna = 0;
         int fichasContrarias = 0;
