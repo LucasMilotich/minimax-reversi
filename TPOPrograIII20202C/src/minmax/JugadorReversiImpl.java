@@ -16,7 +16,7 @@ public class JugadorReversiImpl implements JugadorReversi {
 
     @Override
     public Celda devolverJugadaOptima(int[][] tablero) {
-        return CalcularPuntaje(tablero, BOT, 15);
+        return CalcularPuntaje(tablero, BOT, 8);
     }
 
     public Celda CalcularPuntaje(int[][] tablero, int jugador, int control) {
@@ -24,6 +24,8 @@ public class JugadorReversiImpl implements JugadorReversi {
 
         Celda jugada = new Celda(-1, -1);
         int maxPuntaje = Integer.MIN_VALUE;
+        int alpha = Integer.MIN_VALUE;
+        int beta = Integer.MAX_VALUE;
         int puntaje = 0;
 
         boolean semBusqueda = true;
@@ -33,7 +35,7 @@ public class JugadorReversiImpl implements JugadorReversi {
         if (posiblesJugadas.size()>0) {
         	jugada = posiblesJugadas.get(0);
         }
-        while (semBusqueda && i < posiblesJugadas.size() - 1) {
+        while (semBusqueda && i < posiblesJugadas.size()) {
             int[][] tableroHijo = MarcarTablero(tablero, posiblesJugadas.get(i), BOT);
             
             if (!HayMovimientos(tableroHijo)) {
@@ -45,7 +47,7 @@ public class JugadorReversiImpl implements JugadorReversi {
             		i++;
             	}
             }else{
-	            puntaje = valorMinMax(tableroHijo, HUMANO, control - 1);
+	            puntaje = valorMinMax(tableroHijo, HUMANO, control, alpha, beta);
 	            if (puntaje > maxPuntaje) { 
 	                maxPuntaje = puntaje;
 	                jugada = posiblesJugadas.get(i);
@@ -58,14 +60,18 @@ public class JugadorReversiImpl implements JugadorReversi {
         return jugada;
     }
 
-    private int valorMinMax(int[][] tablero, int jugador, int control) {
+    private int valorMinMax(int[][] tablero, int jugador, int control, int alpha, int beta) {
     	nodosExplorados++;
         int valor = 0;
         int proxJugador = 0;
-        if (TableroCompleto(tablero) || !HayMovimientos(tablero) || control <= 0 || nodosExplorados>1800000) { // cte o n*m
-            return EvaluarTablero(tablero);// cte o n*m
+        if(beta<=alpha){
+        	//System.out.println("Corte en nivel "+ (9 - control));
+        	if(jugador == BOT) return Integer.MAX_VALUE; else return Integer.MIN_VALUE;
+        }
+        if (TableroCompleto(tablero) || !HayMovimientos(tablero) || control <= 0 ) { 
+            return EvaluarTablero(tablero);
         } else {
-            List<Celda> hijos = BuscarPosiblesJugadas(tablero, jugador); // cte o n*m
+            List<Celda> hijos = BuscarPosiblesJugadas(tablero, jugador); 
             
             if (jugador == BOT) {
                 proxJugador = HUMANO;
@@ -76,28 +82,31 @@ public class JugadorReversiImpl implements JugadorReversi {
             }
             
             if (hijos.size() == 0) {
-                return valorMinMax(tablero, proxJugador, control); 
+                return valorMinMax(tablero, proxJugador, control, alpha, beta); 
             }
-           
-            int i = 0;
-            boolean podar = false;
-            while (!podar && i < hijos.size() - 1) {
-                int[][] tableroHijo = MarcarTablero(tablero, hijos.get(i), jugador);
+                      
+            for (int i=0; i < hijos.size(); i++) {
+            	int[][] tableroHijo = MarcarTablero(tablero, hijos.get(i), jugador);
+            	int v = 0;
                 if (jugador == BOT) {
-                    valor = Math.max(valor, valorMinMax(tableroHijo, HUMANO, control - 1));
+                	v = valorMinMax(tableroHijo, HUMANO, control-1, alpha, beta);
+                    valor = Math.max(valor, v);
+                    alpha = Math.max(alpha, v); 
                 } else {
-                    valor = Math.min(valor, valorMinMax(tableroHijo, BOT, control - 1));
+                	v = valorMinMax(tableroHijo, BOT, control-1, alpha, beta);
+                    valor = Math.min(valor, v);                   
+                    beta = Math.min(beta, v);
                 }
-                
-                
-                i++;
+                if(v == Integer.MIN_VALUE || v == Integer.MAX_VALUE ) { 
+                	break;
+                }          
             }
-            return valor;
+            return valor;      	
         }
     }
 
 
-    private boolean TableroCompleto(int[][] tablero) { //Chequea si el tablero se completo
+    private boolean TableroCompleto(int[][] tablero) { 
         boolean completo = true;
         for (int fila = 0; fila <= 7; fila++) {
             for (int columna = 0; columna <= 7; columna++) {
@@ -109,7 +118,7 @@ public class JugadorReversiImpl implements JugadorReversi {
         return completo;
     }
 
-    private boolean HayMovimientos(int[][] tablero) { //Chequea que ambos jugadores tengan movimientos
+    private boolean HayMovimientos(int[][] tablero) { 
         boolean hayMovimientos = true;
 
         List<Celda> movimientosJugador = BuscarPosiblesJugadas(tablero, 1);
@@ -133,14 +142,14 @@ public class JugadorReversiImpl implements JugadorReversi {
     }
     
     private int EvaluarTablero(int[][] tablero) {
-        int[] heuristica = new int[]{100, -10,  8,  6,  6,  8, -10, 100,
+        int[] heuristica = new int[]{100, -10, 10,  7,  7, 10, -10, 100,
                                      -10, -25, -5, -3, -3, -5, -25, -10,  
-                                       8,  -5,  7,  4,  4,  7,  -5,  8 , 
-                                       6,  -3,  4,  0,  0,  4,  -3,  6 ,  
-                                       6,  -3,  4,  0,  0,  4,  -3,  6 , 
-                                       8,  -4,  7,  4,  4,  7,  -5,  8 , 
+                                      10,  -5,  7,  4,  4,  7,  -5,  10, 
+                                       7,  -3,  4,  1,  1,  4,  -3,  7 ,  
+                                       7,  -3,  4,  1,  1,  4,  -3,  7 , 
+                                      10,  -5,  7,  4,  4,  7,  -5,  10, 
                                      -10, -25, -5, -3, -3, -5, -25, -10, 
-                                     100, -10,  8,  6,  6,  8, -10, 100 };
+                                     100, -10, 10,  7,  7, 10, -10, 100 };
        
         int i = 0;
         int resultado = 0;
