@@ -7,6 +7,7 @@ import reversi.Celda;
 import reversi.JugadorReversi;
 
 
+
 public class JugadorReversiImpl implements JugadorReversi {
 
     final int BOT = 1;
@@ -32,14 +33,14 @@ public class JugadorReversiImpl implements JugadorReversi {
         List<Celda> posiblesJugadas = BuscarPosiblesJugadas(tablero, BOT);
         int i = 0;
         
-        if (posiblesJugadas.size()>0) {
+        if(posiblesJugadas.size()>0) {
         	jugada = posiblesJugadas.get(0);
         }
         while (semBusqueda && i < posiblesJugadas.size()) {
             int[][] tableroHijo = MarcarTablero(tablero, posiblesJugadas.get(i), BOT);
             
             if (!HayMovimientos(tableroHijo)) {
-            	if(DiferenciaFichasBot(tableroHijo)>0) {
+            	if(DiferenciaFichasBot(tableroHijo)>0) { //Si es jugada ganadora, corta y no evalua el resto de posibles jugadas
             		semBusqueda = false;
                 	jugada = posiblesJugadas.get(i);
             	}
@@ -63,29 +64,29 @@ public class JugadorReversiImpl implements JugadorReversi {
     private int valorMinMax(int[][] tablero, int jugador, int control, int alpha, int beta) {
     	nodosExplorados++;
         int valor = 0;
-        int proxJugador = 0;
+   
         if(beta<=alpha){
-        	//System.out.println("Corte en nivel "+ (9 - control));
+        	//System.out.println("Corte en nivel "+ (8 - control));
         	if(jugador == BOT) return Integer.MAX_VALUE; else return Integer.MIN_VALUE;
         }
-        if (TableroCompleto(tablero) || !HayMovimientos(tablero) || control <= 0 ) { 
+        if (TableroCompleto(tablero) || !HayMovimientos(tablero) || control <= 0 || nodosExplorados>13000000) { 
             return EvaluarTablero(tablero);
         } else {
             List<Celda> hijos = BuscarPosiblesJugadas(tablero, jugador); 
             
             if (jugador == BOT) {
-                proxJugador = HUMANO;
                 valor = Integer.MIN_VALUE;
             } else {
-                proxJugador = BOT;
                 valor = Integer.MAX_VALUE;
             }
             
             if (hijos.size() == 0) {
-                return valorMinMax(tablero, proxJugador, control, alpha, beta); 
+                return valorMinMax(tablero, jugador*-1, control, alpha, beta); 
             }
-                      
-            for (int i=0; i < hijos.size(); i++) {
+           
+            int i = 0;
+            boolean podar = false;
+            while ( i < hijos.size() && !podar) {
             	int[][] tableroHijo = MarcarTablero(tablero, hijos.get(i), jugador);
             	int v = 0;
                 if (jugador == BOT) {
@@ -98,15 +99,16 @@ public class JugadorReversiImpl implements JugadorReversi {
                     beta = Math.min(beta, v);
                 }
                 if(v == Integer.MIN_VALUE || v == Integer.MAX_VALUE ) { 
-                	break;
-                }          
+                	podar = true;
+                }
+                i++;
             }
             return valor;      	
         }
     }
 
 
-    private boolean TableroCompleto(int[][] tablero) { 
+    private boolean TableroCompleto(int[][] tablero) { //Chequea si el tablero se completo
         boolean completo = true;
         for (int fila = 0; fila <= 7; fila++) {
             for (int columna = 0; columna <= 7; columna++) {
@@ -118,7 +120,7 @@ public class JugadorReversiImpl implements JugadorReversi {
         return completo;
     }
 
-    private boolean HayMovimientos(int[][] tablero) { 
+    private boolean HayMovimientos(int[][] tablero) { //Chequea que ambos jugadores tengan movimientos
         boolean hayMovimientos = true;
 
         List<Celda> movimientosJugador = BuscarPosiblesJugadas(tablero, 1);
@@ -493,4 +495,5 @@ public class JugadorReversiImpl implements JugadorReversi {
             return 0;
         }
     }
+
 }
